@@ -1,3 +1,5 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'DatabaseHelper.dart';
 
@@ -13,32 +15,36 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
 
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
-  List<Map<String, dynamic>> dataStorage = [];
-
-  void refreshData() async {
-    final data = await DatabaseHelper.getTasks();
-
-    setState(() {
-      dataStorage = data;
-    });
-  }
 
   Future<void> _updateTask() async {
+
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    // update SQLite (if you still use it)
     await DatabaseHelper.updateTask(
       int.parse(widget.id),
       titleController.text,
       descriptionController.text,
     );
 
+    // update Firebase with UID
+    await FirebaseDatabase.instance
+        .ref("tasks/$uid/${widget.id}")
+        .update({
+      "title": titleController.text,
+      "description": descriptionController.text,
+    });
+
     Navigator.pop(context, "refresh");
   }
 
   Future<void> _getTask() async {
-    var data1 = await DatabaseHelper.getTask(int.parse(widget.id));
+
+    var data = await DatabaseHelper.getTask(int.parse(widget.id));
 
     setState(() {
-      titleController.text = data1[0]["title"] as String;
-      descriptionController.text = data1[0]["description"] as String;
+      titleController.text = data[0]["title"] ?? "";
+      descriptionController.text = data[0]["description"] ?? "";
     });
   }
 
@@ -52,23 +58,20 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Task'),
+        title: const Text('Edit Task'),
       ),
 
       body: Padding(
         padding: const EdgeInsets.all(20),
-
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
 
             TextField(
               controller: titleController,
               decoration: const InputDecoration(
-                hintText: "Title",
-                border: OutlineInputBorder(),
                 labelText: 'Task Title',
+                border: OutlineInputBorder(),
               ),
             ),
 
@@ -77,17 +80,16 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
             TextField(
               controller: descriptionController,
               decoration: const InputDecoration(
-                hintText: "Description",
-                border: OutlineInputBorder(),
                 labelText: 'Task Description',
+                border: OutlineInputBorder(),
               ),
             ),
 
-            const SizedBox(height: 15),
+            const SizedBox(height: 20),
 
             ElevatedButton(
               onPressed: _updateTask,
-              child: const Text('edit Task'),
+              child: const Text('Update Task'),
             ),
           ],
         ),

@@ -13,6 +13,7 @@ class DatabaseHelper {
             title TEXT,
             description TEXT,
             isComplete INTEGER DEFAULT 0,
+            userId TEXT,
             createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
           )
         ''');
@@ -21,20 +22,26 @@ class DatabaseHelper {
   }
 
   // INSERT
-  static Future<int> insertTask(String title, String description) async {
+  static Future<int> insertTask(String title, String description, String userId) async {
     final db = await DatabaseHelper.db();
 
     return await db.insert("tasks", {
       'title': title,
       'description': description,
       'isComplete': 0,
+      'userId': userId,
     });
   }
 
   // GET ALL
-  static Future<List<Map<String, dynamic>>> getTasks() async {
+  static Future<List<Map<String, dynamic>>> getTasks(String userId) async {
     final db = await DatabaseHelper.db();
-    return db.query("tasks", orderBy: "id DESC");
+    return db.query(
+      "tasks",
+      where: "userId = ?",
+      whereArgs: [userId],
+      orderBy: "id DESC",
+    );
   }
 
   // GET ONE
